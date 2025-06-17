@@ -8,8 +8,6 @@ import {
   Typography,
   Chip,
   Avatar,
-  IconButton,
-  Dialog,
   Button,
   CircularProgress,
   TextField,
@@ -23,9 +21,45 @@ import {
   Warning,
   FilterList,
 } from '@mui/icons-material';
-import { useAuth } from '../hooks/useAuth';
-import { orderService } from '../services/orderService';
-import OrderDetailsDialog from './OrderDetailsDialog';
+import PropTypes from 'prop-types';
+
+// Mock services until actual services are created
+const useAuth = () => ({ user: { id: 1, name: 'Test User' } });
+const orderService = {
+  getOrders: async () => {
+    // Mock data
+    return [
+      {
+        id: 1,
+        woo_order_id: 'WC-1001',
+        customer_name: 'John Doe',
+        customer_department: 'Engineering',
+        status: 'ordered',
+        priority: 1,
+        delivery_method: 'shipping',
+        assigned_to: null,
+        systems: [{ id: 1, status: 'pending' }],
+        updated_at: new Date().toISOString()
+      }
+    ];
+  },
+  updateOrderStatus: async (orderId, status) => {
+    console.log(`Updating order ${orderId} to status ${status}`);
+    return { success: true };
+  }
+};
+
+// Mock dialog component until created
+const OrderDetailsDialog = ({ order, open, onClose, onUpdate }) => {
+  return null; // Placeholder
+};
+
+OrderDetailsDialog.propTypes = {
+  order: PropTypes.object,
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onUpdate: PropTypes.func.isRequired
+};
 
 // Order card component with drag functionality
 const OrderCard = ({ order, onOrderClick }) => {
@@ -120,6 +154,23 @@ const OrderCard = ({ order, onOrderClick }) => {
   );
 };
 
+OrderCard.propTypes = {
+  order: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    woo_order_id: PropTypes.string.isRequired,
+    customer_name: PropTypes.string.isRequired,
+    customer_department: PropTypes.string,
+    status: PropTypes.string.isRequired,
+    priority: PropTypes.number,
+    delivery_method: PropTypes.string,
+    systems: PropTypes.array,
+    assigned_to: PropTypes.object,
+    isAssignedToMe: PropTypes.bool,
+    hasUrgentIssue: PropTypes.bool
+  }).isRequired,
+  onOrderClick: PropTypes.func.isRequired
+};
+
 // Column component with drop functionality
 const KanbanColumn = ({ status, orders, onOrderDrop, onOrderClick }) => {
   const [{ isOver }, drop] = useDrop(() => ({
@@ -176,13 +227,23 @@ const KanbanColumn = ({ status, orders, onOrderDrop, onOrderClick }) => {
   );
 };
 
+KanbanColumn.propTypes = {
+  status: PropTypes.shape({
+    value: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired
+  }).isRequired,
+  orders: PropTypes.array.isRequired,
+  onOrderDrop: PropTypes.func.isRequired,
+  onOrderClick: PropTypes.func.isRequired
+};
+
 // Main Kanban Board component
 const KanbanBoard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [filterMode, setFilterMode] = useState('all'); // all, assigned, unassigned
+  const [filterMode, setFilterMode] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const statuses = [
